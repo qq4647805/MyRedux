@@ -25,17 +25,36 @@ const reducers = {
 }
 const store = new MyRedux(reducers)
 
-//绑定react 
+//connect react 
 const Home = (props) => {
             return (
                 <p>{props.data.data}</p>
             )
         }
-const Main = connect(({ home }) => ({ data:home }))(App)
-
+const Main = connect(({ home }) => ({ data:home }))(Home)
 const App = ()=>(
     <Provider store={store}>
         <Main />
     </Provider>
 )
+
+//获取reducers的值
+store.getState()
+
+//dispatch 4种方式
+//1.第二个参数为action
+store.dispatch({ data: 111 }, 'foo')
+//2.state里面有action属性
+store.dispatch({ data: 111,action:'foo' })
+//3.传递一个函数
+store.dispatch((dispatch,getState) => {
+    dispatch({ data: 333 }, 'home')
+})
+//4.把方法定义到reducer里面
+store.dispatch({}, 'foo.get')
+
+//订阅与取消
+let unsubscribe = store.subscribe(myFn) //订阅
+unsubscribe()//取消
+
 ```
