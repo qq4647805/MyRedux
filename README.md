@@ -1,5 +1,5 @@
 # MyRedux
-
+### 简单自用的Redux,集成redux,react-redux,简化创建reducers
 
 ```javascript
 //初始化
