@@ -17,10 +17,12 @@ class MyRedux {
         let type = action.type
         if (type && this._.type_cache[type]) {
             let type_cache = this._.type_cache[type]
+            let arr = []
             type_cache.forEach(args => {
                 let { reducer, v } = args
-                this._setState(reducer, action, v, true)
+                arr.push(this._setState(reducer, action, v, true))
             })
+            this._.promise = Promise.all(arr)
             return true
         } else {
             return false
@@ -35,17 +37,17 @@ class MyRedux {
             type_cache.add({ reducer, v })
         }
         if (typeof newstate == 'function') {
-            newstate(this.dispatch, this.getState)
-            return
+            return newstate(this.dispatch, this.getState)
         } else {
             this._.state[v] = newstate
+            return true
         }
 
     }
 
     dispatch = (action = {}, type = false, render = true) => {
         if (typeof action == 'function') {
-            action(this.dispatch, this.getState)
+            this._.promise = Promise.all([action(this.dispatch, this.getState)])
             return this
         }
         if (type) {
@@ -53,15 +55,18 @@ class MyRedux {
         }
         const reducers = this._.reducer;
         if (!this._reducerFromCache(action)) {
-            Object.keys(reducers).forEach(v => {
+            this._.promise = Promise.all(Object.keys(reducers).map(v => {
                 let reducer = reducers[v]
-                this._setState(reducer, action, v)
-            })
+                return this._setState(reducer, action, v)
+            }))
         }
         if (render && this._.listener_arr.length > 0) {
             this._.listener_arr.reverse().forEach(v => { v() })
         }
         return this;
+    }
+    then = (...arg) => {
+        this._.promise.then(...arg)
     }
 
     subscribe = (listener) => {
@@ -154,7 +159,10 @@ class Provider extends Component {
 
 
 Provider.childContextTypes = {
-    store: PropTypes.object,
-}
+        store: PropTypes.object,
+    }
+    // MyRedux.connect = connect
+    // MyRedux.Provider = Provider
 export default MyRedux
 export { connect, Provider }
+// module.exports = MyRedux;
