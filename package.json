@@ -2,7 +2,7 @@
     "name": "MyRedux",
     "version": "1.0.0",
     "description": "",
-    "main": "lib/",
+    "main": "lib/MyRedux.js",
     "directories": {
         "lib": "lib"
     },
