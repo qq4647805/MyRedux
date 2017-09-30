@@ -1,16 +1,16 @@
-import React, { Component, createElement, Children } from 'react';
-import PropTypes from "prop-types";
+import React, { Component, createElement, Children } from "react"
+import PropTypes from "prop-types"
 class MyRedux {
     constructor(reducer, initState = {}) {
-        this._(reducer, initState);
-        this.dispatch();
-        this._.state = {...this._.state, ...initState }
+        this._(reducer, initState)
+        this.dispatch()
+        this._.state = { ...this._.state, ...initState }
     }
 
     _(reducer) {
-        this._.state = {};
-        this._.reducer = reducer;
-        this._.listener_arr = [];
+        this._.state = {}
+        this._.reducer = reducer
+        this._.listener_arr = []
         this._.type_cache = {}
     }
     _reducerFromCache(action) {
@@ -32,121 +32,129 @@ class MyRedux {
         let state = this._.state[v]
         let newstate = reducer(state, action)
         if (!no_cache && v && action.type && state !== newstate) {
-            this._.type_cache[action.type] || (this._.type_cache[action.type] = new Set())
+            this._.type_cache[action.type] ||
+                (this._.type_cache[action.type] = new Set())
             let type_cache = this._.type_cache[action.type]
             type_cache.add({ reducer, v })
         }
-        if (typeof newstate == 'function') {
+        if (typeof newstate == "function") {
             return newstate(this.dispatch, this.getState)
         } else {
             this._.state[v] = newstate
             return true
         }
-
     }
 
     dispatch = (action = {}, type = false, render = true) => {
-        if (typeof action == 'function') {
+        if (typeof action == "function") {
             this._.promise = Promise.all([action(this.dispatch, this.getState)])
             return this
         }
         if (type) {
-            action.type = type;
+            action.type = type
         }
-        const reducers = this._.reducer;
+        const reducers = this._.reducer
         if (!this._reducerFromCache(action)) {
-            this._.promise = Promise.all(Object.keys(reducers).map(v => {
-                let reducer = reducers[v]
-                return this._setState(reducer, action, v)
-            }))
+            this._.promise = Promise.all(
+                Object.keys(reducers).map(v => {
+                    let reducer = reducers[v]
+                    return this._setState(reducer, action, v)
+                })
+            )
         }
         if (render && this._.listener_arr.length > 0) {
-            this._.listener_arr.reverse().forEach(v => { v() })
+            this._.listener_arr.reverse().forEach(v => {
+                v()
+            })
         }
-        return this;
+        return this
     }
     then = (...arg) => {
         this._.promise.then(...arg)
     }
 
-    subscribe = (listener) => {
-        if (typeof listener !== 'function') {
-            return false;
+    subscribe = listener => {
+        if (typeof listener !== "function") {
+            return false
         }
-        this._.listener_arr.push(listener);
+        this._.listener_arr.push(listener)
         return () => {
             if (this._.listener_arr.length <= 0) {
                 return
             }
-            const index = this._.listener_arr.indexOf(listener);
-            this._.listener_arr.splice(index, 1);
+            const index = this._.listener_arr.indexOf(listener)
+            this._.listener_arr.splice(index, 1)
         }
     }
 
     getState = () => {
-        return this._.state;
+        return this._.state
     }
 }
 
+const connect = (mapReducer = s => {}) => component => {
+    var that
+    class Wrap extends Component {
+        constructor(props, context) {
+            super()
+            that = context.store
+            const state = { ...mapReducer(that.getState()) }
+            this.state = state
+        }
 
-const connect = (mapReducer = s => {}) =>
-    (component) => {
-        var that;
-        class Wrap extends Component {
+        componentWillMount() {
+            this.unsubscribe = that.subscribe(() => {
+                this.setState({ ...mapReducer(that.getState()) })
+            })
+        }
 
-            constructor(props, context) {
-                super();
-                that = context.store
-                const state = {...mapReducer(that.getState()) }
-                this.state = state;
-            }
+        componentWillUnmount() {
+            this.unsubscribe()
+        }
 
-            componentWillMount() {
-                this.unsubscribe = that.subscribe(() => {
-                    this.setState({...mapReducer(that.getState()) });
-                });
-            }
-
-            componentWillUnmount() {
-                this.unsubscribe()
-            }
-
-            shallowEqual(objA, objB) {
-                if (objA === objB) {
-                    return true
-                }
-                const keysA = Object.keys(objA)
-                const keysB = Object.keys(objB)
-
-                if (keysA.length !== keysB.length) {
-                    return false
-                }
-                const hasOwn = Object.prototype.hasOwnProperty
-                for (let i = 0; i < keysA.length; i++) {
-                    if (!hasOwn.call(objB, keysA[i]) ||
-                        objA[keysA[i]] !== objB[keysA[i]]) {
-                        return false
-                    }
-                }
+        shallowEqual(objA, objB) {
+            if (objA === objB) {
                 return true
             }
+            const keysA = Object.keys(objA)
+            const keysB = Object.keys(objB)
 
-            shouldComponentUpdate(props, state) {
-                return (!this.shallowEqual(state, this.state) || !this.shallowEqual(props, this.props));
+            if (keysA.length !== keysB.length) {
+                return false
             }
+            const hasOwn = Object.prototype.hasOwnProperty
+            for (let i = 0; i < keysA.length; i++) {
+                if (
+                    !hasOwn.call(objB, keysA[i]) ||
+                    objA[keysA[i]] !== objB[keysA[i]]
+                ) {
+                    return false
+                }
+            }
+            return true
+        }
 
-            render() {
-                return (
-                    createElement(component, {...this.state, ...this.props, objEq: this.shallowEqual })
-                )
-            }
+        shouldComponentUpdate(props, state) {
+            return (
+                !this.shallowEqual(state, this.state) ||
+                !this.shallowEqual(props, this.props)
+            )
         }
-        Wrap.contextTypes = {
-            store: PropTypes.object.isRequired
+
+        render() {
+            return createElement(component, {
+                ...this.state,
+                ...this.props,
+                ...that,
+                objEq: this.shallowEqual
+            })
         }
-        return Wrap
     }
-
+    Wrap.contextTypes = {
+        store: PropTypes.object.isRequired
+    }
+    return Wrap
+}
 
 class Provider extends Component {
     getChildContext() {
@@ -157,12 +165,11 @@ class Provider extends Component {
     }
 }
 
-
 Provider.childContextTypes = {
-        store: PropTypes.object,
-    }
-    // MyRedux.connect = connect
-    // MyRedux.Provider = Provider
+    store: PropTypes.object
+}
+// MyRedux.connect = connect
+// MyRedux.Provider = Provider
 export default MyRedux
 export { connect, Provider }
 // module.exports = MyRedux;
