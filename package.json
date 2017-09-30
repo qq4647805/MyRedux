@@ -1,8 +1,8 @@
 {
-    "name": "myredux",
+    "name": "MyRedux",
     "version": "1.0.1",
     "description": "",
-    "main": "lib/",
+    "main": "lib/MyRedux.js",
     "directories": {
         "lib": "lib"
     },
