@@ -1,6 +1,10 @@
 {
     "name": "MyRedux",
+<<<<<<< HEAD
     "version": "1.0.3",
+=======
+    "version": "1.0.1",
+>>>>>>> 961e0320df7049f487556b3aa693228c2dda6b3c
     "description": "",
     "main": "lib/MyRedux.js",
     "directories": {
